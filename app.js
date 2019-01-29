@@ -109,11 +109,14 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
     const lastWeekPerPerson = contentViewCnts.lastWeek / signInCnts.lastWeek;
     const thisWeekIncrRatePerPerson = (thisWeekPerPerson - lastWeekPerPerson) / lastWeekPerPerson * 100;
 
+    const thisMonthIncrRate = (contentViewCnts.thisMonth - contentViewCnts.lastMonth) / contentViewCnts.lastMonth * 100;
     const thisMonthPerPerson = contentViewCnts.thisMonth / signInCnts.thisMonth;
+    const lastMonthPerPerson = contentViewCnts.lastMonth / signInCnts.lastMonth;
+    const thisMonthIncrRatePerPerson = (thisMonthPerPerson - lastMonthPerPerson) / lastMonthPerPerson * 100;
 
     const json = {
         channel: config.slack.noti_channel_id,
-        attachments: [                          
+        attachments: [
             {
                 title: '일간',
                 color: '#35c5f0',
@@ -150,8 +153,8 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                 fields: [
                     {
                         title: moment(dates.yesterday).startOf('month').format('MM/DD(ddd)') + ' ~ 어제까지',
-                        value: numberFormat('#,##0.#', contentViewCnts.thisMonth) + '회 조회'
-                        + '\n사용자 1명당 ' + numberFormat('#,##0.#', thisMonthPerPerson) + '회 조회',
+                        value: numberFormat('#,##0.#', contentViewCnts.thisMonth) + '회 조회 (지난 달 대비 ' + (thisMonthIncrRate >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRate)) + ')'
+                        + '\n사용자 1명당 ' + numberFormat('#,##0.#', thisMonthPerPerson) + '회 조회 (지난 달 대비 ' + (thisMonthIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRatePerPerson)) + ')',
                         short: false
                     }
                 ]
