@@ -14,7 +14,7 @@ $ * * * * * /home/bsscco/daily-content-views/chkproc.sh > /home/bsscco/daily-con
 ### crontab 예약
 ```
 $ crontab -e
-$ 0 9 3 * * curl localhost:15000/notify/yesterday/contentviews > /home/bsscco/daily-content-views/crontab-curl-1.log 2>&1
+$ 1 9 * * * curl localhost:15000/notify/yesterday/contentviews > /home/bsscco/daily-content-views/crontab-curl-1.log 2>&1
 ```
 
 ### low memory 머신에서 npm install

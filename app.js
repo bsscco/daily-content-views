@@ -61,7 +61,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             signInCnts.thisMonth = rows[0].cnt;
-            return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(dates.yesterday).startOf('month')));
+            return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
         })
         .then((rows)=>{
             signInCnts.lastMonth = rows[0].cnt;
@@ -85,7 +85,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             contentViewCnts.thisMonth = rows[0].cnt;
-            return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(dates.yesterday).startOf('month')));
+            return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
         })
         .then((rows) => {
             contentViewCnts.lastMonth = rows[0].cnt;
@@ -153,8 +153,8 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                 fields: [
                     {
                         title: moment(dates.yesterday).startOf('month').format('MM/DD(ddd)') + ' ~ 어제까지',
-                        value: numberFormat('#,##0.#', contentViewCnts.thisMonth) + '회 조회 (지난 달 대비 ' + (thisMonthIncrRate >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRate)) + ')'
-                        + '\n사용자 1명당 ' + numberFormat('#,##0.#', thisMonthPerPerson) + '회 조회 (지난 달 대비 ' + (thisMonthIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRatePerPerson)) + ')',
+                        value: numberFormat('#,##0.#', contentViewCnts.thisMonth) + '회 조회 (지난 월 대비 ' + (thisMonthIncrRate >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRate)) + ')'
+                        + '\n사용자 1명당 ' + numberFormat('#,##0.#', thisMonthPerPerson) + '회 조회 (지난 월 대비 ' + (thisMonthIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRatePerPerson)) + ')',
                         short: false
                     }
                 ]
