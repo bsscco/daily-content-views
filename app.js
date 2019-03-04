@@ -72,7 +72,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         lastWeekYesterday: 0,
         thisWeek: 0,
         lastWeek: 0,
-        lastWeekRemained: 0,
+        toYesterdayFor7Days: 0,
         thisMonth: 0,
         lastMonth: 0,
     }
@@ -81,7 +81,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         lastWeekYesterday: 0,
         thisWeek: 0,
         lastWeek: 0,
-        lastWeekRemained: 0,
+        toYesterdayFor7Days: 0,
         thisMonth: 0,
         lastMonth: 0,
         thisMonthGoal: 0,
@@ -101,58 +101,58 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
             return db.any(queries.getSignInCnt(dates.yesterday, dates.today));
         })
         .then((rows) => {
-            signInCnts.yesterday = rows[0].cnt;
+            signInCnts.yesterday = parseInt(rows[0].cnt);
             return db.any(queries.getSignInCnt(dates.lastWeekYesterday, dates.lastWeekToday));
         })
         .then((rows) => {
-            signInCnts.lastWeekYesterday = rows[0].cnt;
+            signInCnts.lastWeekYesterday = parseInt(rows[0].cnt);
             return db.any(queries.getSignInCnt(moment(dates.yesterday).startOf('week'), dates.today));
         })
         .then((rows) => {
-            signInCnts.thisWeek = rows[0].cnt;
+            signInCnts.thisWeek = parseInt(rows[0].cnt);
             return db.any(queries.getSignInCnt(moment(dates.lastWeekYesterday).startOf('week'), dates.lastWeekToday));
         })
         .then((rows) => {
-            signInCnts.lastWeek = rows[0].cnt;
-            return db.any(queries.getSignInCnt(moment(dates.lastWeekToday), moment(dates.yesterday).startOf('week')));
+            signInCnts.lastWeek = parseInt(rows[0].cnt);
+            return db.any(queries.getSignInCnt(moment(dates.today).subtract(7, 'days'), moment(dates.today)));
         })
         .then((rows) => {
-            signInCnts.lastWeekRemained = rows[0].cnt;
+            signInCnts.toYesterdayFor7Days = parseInt(rows[0].cnt);
             return db.any(queries.getSignInCnt(moment(dates.yesterday).startOf('month'), dates.today));
         })
         .then((rows) => {
-            signInCnts.thisMonth = rows[0].cnt;
+            signInCnts.thisMonth = parseInt(rows[0].cnt);
             return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
         })
         .then((rows) => {
-            signInCnts.lastMonth = rows[0].cnt;
+            signInCnts.lastMonth = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(dates.yesterday, dates.today));
         })
         .then((rows) => {
-            contentViewCnts.yesterday = rows[0].cnt;
+            contentViewCnts.yesterday = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(dates.lastWeekYesterday, dates.lastWeekToday));
         })
         .then((rows) => {
-            contentViewCnts.lastWeekYesterday = rows[0].cnt;
+            contentViewCnts.lastWeekYesterday = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(moment(dates.yesterday).startOf('week'), dates.today));
         })
         .then((rows) => {
-            contentViewCnts.thisWeek = rows[0].cnt;
+            contentViewCnts.thisWeek = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(moment(dates.lastWeekYesterday).startOf('week'), dates.lastWeekToday));
         })
         .then((rows) => {
-            contentViewCnts.lastWeek = rows[0].cnt;
-            return db.any(queries.getContentViewCnt(moment(dates.lastWeekToday), moment(dates.yesterday).startOf('week')));
+            contentViewCnts.lastWeek = parseInt(rows[0].cnt);
+            return db.any(queries.getContentViewCnt(moment(dates.today).subtract(7, 'days'), moment(dates.today)));
         })
         .then((rows) => {
-            contentViewCnts.lastWeekRemained = rows[0].cnt;
+            contentViewCnts.toYesterdayFor7Days = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(moment(dates.yesterday).startOf('month'), dates.today));
         })
         .then((rows) => {
-            contentViewCnts.thisMonth = rows[0].cnt;
+            contentViewCnts.thisMonth = parseInt(rows[0].cnt);
             return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
         })
-        .then((rows) => contentViewCnts.lastMonth = rows[0].cnt)
+        .then((rows) => contentViewCnts.lastMonth = parseInt(rows[0].cnt))
         .then(() => sendMsg('', makeNotiMsgPayload(dates, signInCnts, contentViewCnts)))
         .then(res => console.log(res.data))
         .catch((e) => console.log(e.message));
@@ -272,7 +272,7 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
 
     let thisMonthExpected = 0;
     if (dates.yesterday.date() < 7) {
-        thisMonthExpected = (contentViewCnts.thisWeek + contentViewCnts.lastWeekRemained) / 7 * dates.yesterday.daysInMonth();
+        thisMonthExpected = contentViewCnts.toYesterdayFor7Days / 7 * dates.yesterday.daysInMonth();
     } else {
         thisMonthExpected = contentViewCnts.thisMonth / dates.yesterday.date() * dates.yesterday.daysInMonth();
     }
@@ -280,7 +280,7 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
 
     let thisMonthExpectedPerPerson = 0;
     if (dates.yesterday.date() < 7) {
-        thisMonthExpectedPerPerson = (((contentViewCnts.thisWeek + contentViewCnts.lastWeekRemained) / (signInCnts.thisWeek + signInCnts.lastWeekRemained)) / 7 * dates.yesterday.daysInMonth());
+        thisMonthExpectedPerPerson = (contentViewCnts.toYesterdayFor7Days / signInCnts.toYesterdayFor7Days) / 7 * dates.yesterday.daysInMonth();
     } else {
         thisMonthExpectedPerPerson = (contentViewCnts.thisMonth / signInCnts.thisMonth) / dates.yesterday.date() * dates.yesterday.daysInMonth();
     }
@@ -329,12 +329,12 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                         + '\n사용자당 ' + numberFormat('#,##0.0', thisMonthPerPerson) + '회 (지난 월 대비 ' + (thisMonthIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRatePerPerson)) + ')',
                         short: true
                     },
-                    {
-                        title: dates.yesterday.format('MM월') + ' 예상',
-                        value: numberFormat('#,##0.', thisMonthExpected) + '회 (목표 ' + numberFormat('#,##0.', contentViewCnts.thisMonthGoal) + '회)\n*`' + numberFormat('#,##0.', Math.abs(contentViewCnts.thisMonthGoal - thisMonthExpected)) + '회' + (contentViewCnts.thisMonthGoal - thisMonthExpected >= 0 ? ' 더 필요' : ' 초과달성') + '`*'
-                        + '\n사용자당 ' + numberFormat('#,##0.0', thisMonthExpectedPerPerson) + '회 (목표 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회)\n*`' + '사용자당 ' + numberFormat('#,##0.0', Math.abs(contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson)) + '회' + (contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson >= 0 ? ' 더 필요' : ' 초과달성') + '`*',
-                        short: true
-                    },
+                    // {
+                    //     title: dates.yesterday.format('MM월') + ' 예상',
+                    //     value: numberFormat('#,##0.', thisMonthExpected) + '회 (목표 ' + numberFormat('#,##0.', contentViewCnts.thisMonthGoal) + '회)\n*`' + numberFormat('#,##0.', Math.abs(contentViewCnts.thisMonthGoal - thisMonthExpected)) + '회' + (contentViewCnts.thisMonthGoal - thisMonthExpected >= 0 ? ' 더 필요' : ' 초과달성') + '`*'
+                    //     + '\n사용자당 ' + numberFormat('#,##0.0', thisMonthExpectedPerPerson) + '회 (목표 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회)\n*`' + '사용자당 ' + numberFormat('#,##0.0', Math.abs(contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson)) + '회' + (contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson >= 0 ? ' 더 필요' : ' 초과달성') + '`*',
+                    //     short: true
+                    // },
                 ]
             }
         ]
