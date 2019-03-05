@@ -335,6 +335,11 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                     //     + '\n사용자당 ' + numberFormat('#,##0.0', thisMonthExpectedPerPerson) + '회 (목표 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회)\n*`' + '사용자당 ' + numberFormat('#,##0.0', Math.abs(contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson)) + '회' + (contentViewCnts.thisMonthGoalPerPerson - thisMonthExpectedPerPerson >= 0 ? ' 더 필요' : ' 초과달성') + '`*',
                     //     short: true
                     // },
+                    {
+                        title: dates.yesterday.format('MM월') + ' 목표',
+                        value: numberFormat('#,##0.', contentViewCnts.thisMonthGoal) + '회\n사용자당 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회',
+                        short: true
+                    },
                 ]
             }
         ]
