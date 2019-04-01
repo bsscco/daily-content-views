@@ -122,7 +122,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             signInCnts.thisMonth = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
+            return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').endOf('month').add(1, 'days')));
         })
         .then((rows) => {
             signInCnts.lastMonth = parseInt(rows[0].cnt);
@@ -150,7 +150,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             contentViewCnts.thisMonth = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').set('date', today.get('date'))));
+            return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').endOf('month').add(1, 'days')));
         })
         .then((rows) => contentViewCnts.lastMonth = parseInt(rows[0].cnt))
         .then(() => sendMsg('', makeNotiMsgPayload(dates, signInCnts, contentViewCnts)))
