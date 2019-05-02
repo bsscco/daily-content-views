@@ -33,7 +33,7 @@ app.post('/contents', (req, res) => {
     res.send('');
 
     if (req.body.text === 'goal') {
-        getDbContentViews()
+        getContentViewsGoal()
             .then(snapshot => openDlg(req.body.trigger_id, makeGoalSettingDlgPayload(snapshot.val())))
             .then(res => console.log(res.data))
             .catch(err => console.log(err));
@@ -58,17 +58,28 @@ app.post('/interact', (req, res) => {
 app.get('/notify/yesterday/contentviews', (req, res) => {
     res.sendStatus(200);
 
-    const today = moment();
-    const yesterday = moment(today).subtract(1, 'days');
-    // const today = moment({y: 2018, M: Number(process.argv[2]), d: date}).add(1, 'days');
-    const dates = {
-        today,
-        yesterday,
-        lastWeekToday: moment(today).subtract(7, 'days'),
-        lastWeekYesterday: moment(yesterday).subtract(7, 'days'),
-    }
+    const dates = {};
+    dates.thisWeekToday = moment();
+    // dates.thisWeekToday = moment({y: 2019, M: /*Number(process.argv[2])*/2, d: 31});
+    dates.thisWeekYesterday = moment(dates.thisWeekToday).subtract(1, 'days');
+    dates.thisWeekFirstDay = moment(dates.thisWeekYesterday).startOf('week');
+
+    dates.lastWeekToday = moment(dates.thisWeekToday).subtract(7, 'days');
+    dates.lastWeekYesterday = moment(dates.lastWeekToday).subtract(1, 'days');
+    dates.lastWeekFirstDay = moment(dates.lastWeekYesterday).startOf('week');
+
+    dates.thisMonthToday = moment(dates.thisWeekToday);
+    dates.thisMonthYesterday = moment(dates.thisWeekYesterday);
+    dates.thisMonthFirstDay = moment(dates.thisMonthYesterday).startOf('month');
+
+    dates.lastMonthToday = moment(dates.thisMonthYesterday).subtract(1, 'months').set('date', dates.thisMonthYesterday.get('date')).add(1, 'days');
+    dates.lastMonthYesterday = moment(dates.lastMonthToday).subtract(1, 'days');
+    dates.lastMonthFirstDay = moment(dates.thisMonthYesterday).subtract(1, 'months').startOf('month');
+
+    console.log(dates);
+
     const signInCnts = {
-        yesterday: 0,
+        thisWeekYesterday: 0,
         lastWeekYesterday: 0,
         thisWeek: 0,
         lastWeek: 0,
@@ -77,7 +88,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         lastMonth: 0,
     }
     const contentViewCnts = {
-        yesterday: 0,
+        thisWeekYesterday: 0,
         lastWeekYesterday: 0,
         thisWeek: 0,
         lastWeek: 0,
@@ -94,11 +105,11 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         user: config.db.user,
         password: config.db.pwd
     });
-    getDbContentViews(yesterday.format('YYYY-MM'))
+    getContentViewsGoal(dates.thisWeekYesterday.format('YYYY-MM'))
         .then(snapshot => {
-            contentViewCnts.thisMonthGoal = parseFloat(snapshot.val().goal);
-            contentViewCnts.thisMonthGoalPerPerson = parseFloat(snapshot.val().goal_per_person);
-            return db.any(queries.getSignInCnt(dates.yesterday, dates.today));
+            contentViewCnts.thisMonthGoal = parseFloat(snapshot.val() == null ? 0 : snapshot.val().goal);
+            contentViewCnts.thisMonthGoalPerPerson = parseFloat(snapshot.val() == null ? 0 : snapshot.val().goal_per_person);
+            return db.any(queries.getSignInCnt(dates.thisWeekYesterday, dates.thisWeekToday));
         })
         .then((rows) => {
             signInCnts.yesterday = parseInt(rows[0].cnt);
@@ -106,27 +117,27 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             signInCnts.lastWeekYesterday = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.yesterday).startOf('week'), dates.today));
+            return db.any(queries.getSignInCnt(dates.thisWeekFirstDay, dates.thisWeekToday));
         })
         .then((rows) => {
             signInCnts.thisWeek = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.lastWeekYesterday).startOf('week'), dates.lastWeekToday));
+            return db.any(queries.getSignInCnt(dates.lastWeekFirstDay, dates.lastWeekToday));
         })
         .then((rows) => {
             signInCnts.lastWeek = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.today).subtract(7, 'days'), moment(dates.today)));
+            return db.any(queries.getSignInCnt(moment(dates.thisWeekToday).subtract(7, 'days'), dates.thisWeekToday));
         })
         .then((rows) => {
             signInCnts.toYesterdayFor7Days = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.yesterday).startOf('month'), dates.today));
+            return db.any(queries.getSignInCnt(dates.thisMonthFirstDay, dates.thisMonthToday));
         })
         .then((rows) => {
             signInCnts.thisMonth = parseInt(rows[0].cnt);
-            return db.any(queries.getSignInCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').endOf('month').add(1, 'days')));
+            return db.any(queries.getSignInCnt(dates.lastMonthFirstDay, dates.lastMonthToday));
         })
         .then((rows) => {
             signInCnts.lastMonth = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(dates.yesterday, dates.today));
+            return db.any(queries.getContentViewCnt(dates.thisWeekYesterday, dates.thisWeekToday));
         })
         .then((rows) => {
             contentViewCnts.yesterday = parseInt(rows[0].cnt);
@@ -134,23 +145,23 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         })
         .then((rows) => {
             contentViewCnts.lastWeekYesterday = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.yesterday).startOf('week'), dates.today));
+            return db.any(queries.getContentViewCnt(dates.thisWeekFirstDay, dates.thisWeekToday));
         })
         .then((rows) => {
             contentViewCnts.thisWeek = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.lastWeekYesterday).startOf('week'), dates.lastWeekToday));
+            return db.any(queries.getContentViewCnt(dates.lastWeekFirstDay, dates.lastWeekToday));
         })
         .then((rows) => {
             contentViewCnts.lastWeek = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.today).subtract(7, 'days'), moment(dates.today)));
+            return db.any(queries.getContentViewCnt(moment(dates.thisWeekToday).subtract(7, 'days'), dates.thisWeekToday));
         })
         .then((rows) => {
             contentViewCnts.toYesterdayFor7Days = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.yesterday).startOf('month'), dates.today));
+            return db.any(queries.getContentViewCnt(dates.thisMonthFirstDay, dates.thisWeekToday));
         })
         .then((rows) => {
             contentViewCnts.thisMonth = parseInt(rows[0].cnt);
-            return db.any(queries.getContentViewCnt(moment(dates.yesterday).subtract(1, 'months').startOf('month'), moment(yesterday).subtract(1, 'months').endOf('month').add(1, 'days')));
+            return db.any(queries.getContentViewCnt(dates.lastMonthFirstDay, dates.lastMonthToday));
         })
         .then((rows) => contentViewCnts.lastMonth = parseInt(rows[0].cnt))
         .then(() => sendMsg('', makeNotiMsgPayload(dates, signInCnts, contentViewCnts)))
@@ -158,7 +169,7 @@ app.get('/notify/yesterday/contentviews', (req, res) => {
         .catch((e) => console.log(e.message));
 });
 
-function getDbContentViews(date) {
+function getContentViewsGoal(date) {
     let path = '/daily-content-views';
     if (date) {
         path += '/' + date;
@@ -271,18 +282,18 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
     const thisMonthIncrRatePerPerson = (thisMonthPerPerson - lastMonthPerPerson) / lastMonthPerPerson * 100;
 
     let thisMonthExpected = 0;
-    if (dates.yesterday.date() < 7) {
-        thisMonthExpected = contentViewCnts.toYesterdayFor7Days / 7 * dates.yesterday.daysInMonth();
+    if (dates.thisWeekYesterday.date() < 7) {
+        thisMonthExpected = contentViewCnts.toYesterdayFor7Days / 7 * dates.thisWeekYesterday.daysInMonth();
     } else {
-        thisMonthExpected = contentViewCnts.thisMonth / dates.yesterday.date() * dates.yesterday.daysInMonth();
+        thisMonthExpected = contentViewCnts.thisMonth / dates.thisWeekYesterday.date() * dates.thisWeekYesterday.daysInMonth();
     }
     thisMonthExpected = Math.round(thisMonthExpected);
 
     let thisMonthExpectedPerPerson = 0;
-    if (dates.yesterday.date() < 7) {
-        thisMonthExpectedPerPerson = (contentViewCnts.toYesterdayFor7Days / signInCnts.toYesterdayFor7Days) / 7 * dates.yesterday.daysInMonth();
+    if (dates.thisWeekYesterday.date() < 7) {
+        thisMonthExpectedPerPerson = (contentViewCnts.toYesterdayFor7Days / signInCnts.toYesterdayFor7Days) / 7 * dates.thisWeekYesterday.daysInMonth();
     } else {
-        thisMonthExpectedPerPerson = (contentViewCnts.thisMonth / signInCnts.thisMonth) / dates.yesterday.date() * dates.yesterday.daysInMonth();
+        thisMonthExpectedPerPerson = (contentViewCnts.thisMonth / signInCnts.thisMonth) / dates.thisWeekYesterday.date() * dates.thisWeekYesterday.daysInMonth();
     }
     thisMonthExpectedPerPerson = Math.round(thisMonthExpectedPerPerson);
 
@@ -296,7 +307,7 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                 text: '',
                 fields: [
                     {
-                        title: dates.yesterday.format('MM/DD(ddd)') + ' 어제',
+                        title: dates.thisWeekYesterday.format('MM/DD(ddd)') + ' 어제',
                         value: numberFormat('#,##0.', contentViewCnts.yesterday) + '회 (지난 주 대비 ' + (yesterdayIncrRate >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(yesterdayIncrRate)) + ')'
                         + '\n사용자당 ' + numberFormat('#,##0.0', yesterdayPerPerson) + '회 (지난 주 대비 ' + (yesterdayIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(yesterdayIncrRatePerPerson)) + ')',
                         short: true
@@ -324,7 +335,7 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                 text: '',
                 fields: [
                     {
-                        title: moment(dates.yesterday).startOf('month').format('MM/DD(ddd)') + ' ~ 어제까지',
+                        title: moment(dates.thisWeekYesterday).startOf('month').format('MM/DD(ddd)') + ' ~ 어제까지',
                         value: numberFormat('#,##0.', contentViewCnts.thisMonth) + '회 (지난 월 대비 ' + (thisMonthIncrRate >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRate)) + ')'
                         + '\n사용자당 ' + numberFormat('#,##0.0', thisMonthPerPerson) + '회 (지난 월 대비 ' + (thisMonthIncrRatePerPerson >= 0 ? '▲' : '▼') + numberFormat('#,##0.##%', Math.abs(thisMonthIncrRatePerPerson)) + ')',
                         short: true
@@ -336,8 +347,8 @@ function makeNotiMsgPayload(dates, signInCnts, contentViewCnts) {
                     //     short: true
                     // },
                     {
-                        title: dates.yesterday.format('MM월') + ' 목표',
-                        value: numberFormat('#,##0.', contentViewCnts.thisMonthGoal) + '회\n사용자당 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회',
+                        title: dates.thisWeekYesterday.format('MM월') + ' 목표',
+                        value: (contentViewCnts.thisMonthGoal == 0 ? '`전체 조회수 목표 설정 안 됨`' : numberFormat('#,##0.', contentViewCnts.thisMonthGoal) + '회') + '\n' + (contentViewCnts.thisMonthGoalPerPerson == 0 ? '`사용자당 조회수 목표 설정 안 됨`' : '사용자당 ' + numberFormat('#,##0.0', contentViewCnts.thisMonthGoalPerPerson) + '회'),
                         short: true
                     },
                 ]
